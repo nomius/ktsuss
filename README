@@ -1,0 +1,13 @@
+Description:
+
+ktsuss stands for "keep the su simple, stupid", and as the name says, is a 
+graphical version of su written in C and GTK+ 2. The idea of the project is 
+to remain simple and bug free...
+
+Websites:
+ * http://nomius.blogspot.com
+ * http://github.com/nomius/ktsuss/tree/master
+
+Please report comments, suggestions and bugs to: 
+ * dcortarello@gmail.com
+
