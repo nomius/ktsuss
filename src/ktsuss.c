@@ -290,6 +290,7 @@ int main(int argc, char *argv[])
 	int m = 0, i = 1;
 	guint counter = 0;
 	gchar *command = NULL;
+	gchar *command_run = NULL;
 	gchar *username = NULL;
 	gchar *password = NULL;
 
@@ -430,7 +431,10 @@ int main(int argc, char *argv[])
 				dialog = NULL;
 				/* using argv instead of cmd_argv is fine, because 'su' is going
 				 * to implement its only parsing nevertheless*/
-				run(username, password, argv[i]);
+				command_run = g_strjoinv(" ", &argv[i]);
+				run(username, password, command_run);
+				g_free(command_run);
+
 				counter = 3;
 			}
 			if (!explicit_username) {
