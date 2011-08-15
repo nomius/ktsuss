@@ -1,0 +1,70 @@
+david@localhost:~/fuentes/mine/ktsuss$ svn log
+------------------------------------------------------------------------
+r4 | dcortarello | 2011-06-26 19:42:39 -0300 (Sun, 26 Jun 2011) | 1 line
+
+Added Valere to the credits because to his bug fix
+------------------------------------------------------------------------
+r3 | dcortarello | 2011-06-26 19:40:12 -0300 (Sun, 26 Jun 2011) | 1 line
+
+Fixed bug with commands with more than one parameter
+------------------------------------------------------------------------
+r2 | dcortarello | 2011-03-28 10:56:00 -0300 (Mon, 28 Mar 2011) | 1 line
+
+Initial code version
+------------------------------------------------------------------------
+r1 | dcortarello | 2011-03-28 10:54:00 -0300 (Mon, 28 Mar 2011) | 1 line
+
+Initial repository structure
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Changed format in CREDITS file
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Added PACKAGE_BUGREPORT to configure.ac
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Added contributors line to CREDITS file
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Added license header
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Changed from custom gtk window to native gtk dialog
+
+ . Thanks to Christian Dywan for the patch
+ . Also added support to run commands with different users instead
+   of only root
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Added options -h, --help, -v and --version to ktsuss main file
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Added message error in wrong username
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+New icon
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+licence file added
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Initial code added
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+init version
+------------------------------------------------------------------------
+r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+
+Initial directory structure.
+
