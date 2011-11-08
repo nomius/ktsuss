@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
 		message = g_strdup("Please enter the desired\nusername and password:");
 
 	dialog = gtk_dialog_new_with_buttons(command, NULL, GTK_DIALOG_NO_SEPARATOR, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OK, GTK_RESPONSE_OK, NULL);
+	gtk_window_set_title(GTK_WINDOW(dialog), cmd_argv[0]);
 	gtk_window_set_icon_name(GTK_WINDOW(dialog), "ktsuss");
 	gtk_container_set_border_width(GTK_CONTAINER(dialog), 5);
 	gtk_container_set_border_width(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), 5);
