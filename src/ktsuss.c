@@ -30,26 +30,31 @@
  * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <gtk/gtk.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-#include <glib.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <pwd.h>
 #include <pty.h>
 #include <utmp.h>
-#include <sys/wait.h>
-
-#include <sys/types.h>
-#include <pwd.h>
 #include <termios.h>
-#include <unistd.h>
-#include <errno.h>
+#include <glib.h>
+#include <gtk/gtk.h>
 
 #include "config.h"
 #include "errors.h"
 
+#ifndef MAX
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
+
 #define BUFF_SIZE 1024
 
 static struct termios orig_termios;
+
 
 /* Print's the help text to the terminal and exits with error */
 void say_help(char *str)
@@ -64,14 +69,16 @@ void say_help(char *str)
 	exit(1);
 }
 
+
 /* Print's the about text to the terminal and exits with no error */
 void say_about(void)
 {
-	printf("%s - Copyright (c) 2007-2008 David B. Cortarello\n\n", PACKAGE_STRING);
+	printf("%s - Copyright (c) 2007-2011 David B. Cortarello\n\n", PACKAGE_STRING);
 	printf("Please report comments, suggestions and bugs to:\n\t%s\n\n", PACKAGE_BUGREPORT);
 	printf("Check for new versions at:\n\thttp://nomius.blogspot.com\n\n");
 	exit(0);
 }
+
 
 /* Creates a dialog with the given text error */
 void Werror(int type, char *err_msg, int exit_true, int ret)
@@ -91,6 +98,7 @@ void Werror(int type, char *err_msg, int exit_true, int ret)
 	if (exit_true)
 		exit(ret);
 }
+
 
 /* Gets the real full path for the given command */
 char *get_real_name(const char *command)
@@ -115,12 +123,12 @@ char *get_real_name(const char *command)
 	return real_name;
 }
 
-/* Set the terminal in raw mode */
+
+/* Set the terminal in raw mode (ttyfd must be a valid terminal file descriptor) */
 void tty_raw(int ttyfd)
 {
 	struct termios raw;
 
-	if (tcgetattr(ttyfd, &orig_termios) < 0) err(1, "tcgetattr()");
 	memcpy(&raw, &orig_termios, sizeof(struct termios));
     raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
     raw.c_oflag &= ~(OPOST);
@@ -130,156 +138,150 @@ void tty_raw(int ttyfd)
     raw.c_cc[VMIN] = 0; raw.c_cc[VTIME] = 0;
     raw.c_cc[VMIN] = 2; raw.c_cc[VTIME] = 0;
     raw.c_cc[VMIN] = 0; raw.c_cc[VTIME] = 8;
-    if (tcsetattr(ttyfd, TCSAFLUSH, &raw) < 0) err(1, "tcsetattr()");
+    if (tcsetattr(ttyfd, TCSAFLUSH, &raw) < 0) 
+		err(1, "tcsetattr()");
+}
+
+
+/* Finalize the su call */
+void end_su(int fd)
+{
+	char buf[BUFF_SIZE];
+	fd_set rfds;
+	struct timeval tv;
+
+	/* If it just ended, let's check if there something in the buffers, blame coreutils su for this ugly hack */
+	tv.tv_sec = 0;
+	tv.tv_usec = 100;
+	FD_ZERO(&rfds);
+	FD_SET(fd, &rfds);
+	if (select(fd+1, &rfds, NULL, NULL, &tv) < 0)
+		err(1, "select()");
+	if (FD_ISSET(fd, &rfds))
+		read(fd, buf, BUFF_SIZE);
+}
+
+
+/* Finalize the su call */
+int init_su(int *fdpty, const char *username, const char *password, char *cmd[])
+{
+	int status = 1, i = 0;
+	char buf[BUFF_SIZE], mypass[64];
+	pid_t pid;
+	fd_set rfds;
+	struct timeval tv;
+
+	/* Creates a new terminal */
+	if ((pid = forkpty(fdpty, NULL, NULL, NULL)) < 0) err(1, "forkpty()");
+	else if (pid == 0) {
+		setsid();
+		execv(cmd[0], cmd);
+		err(1, "execv()");
+		exit(1);
+	}
+
+	/* Read the "Password:" prompt */
+	for (i = 500; i && status; i--) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 10;
+		FD_ZERO(&rfds);
+		FD_SET(*fdpty, &rfds);
+		if (select(*fdpty + 1, &rfds, NULL, NULL, &tv) < 0)
+			err(1, "select()");
+		if (FD_ISSET(*fdpty, &rfds)) {
+			read(*fdpty, buf, BUFF_SIZE - 1);
+			status = 0;
+		}
+		usleep(1000);
+	}
+
+	/* Check if we got a limit time */
+	if (status) {
+		kill(pid, SIGKILL);
+		err(1, "No prompt given by the su command");
+	}
+
+	/* Send the password */
+	snprintf(buf, 64, "%s\n", password);
+	write(*fdpty, buf, strlen(buf));
+
+	/* Read what's left in the buffers */
+	end_su(*fdpty);
+
+	return pid;
 }
 
 
 /* Check user and password */
 int check_password(const char *username, const char *password)
 {
-	int	master, slave, status, flag = 1, times = 500;
-	struct termios term;
-	char mypass[64], buf[BUFF_SIZE];
-	pid_t pid;
-	fd_set rfds;
-	struct timeval tv;
+	int fdpty = 0, status = 0, pid = 0;
+	char *cmd[6] = { SUPATH, (char *)username, "-p", "-c", "exit", NULL };
 
-	/* Duplicate stdin in master */
-	if (tcgetattr(fileno(stdin), &term) == -1) err(1, "tcgetattr()");
-	if (openpty(&master, &slave, NULL, &term, NULL) == -1) err(1, "openpty()");
-	if ((pid = fork()) < 0) err(1, "fork()");
-	else if (pid == 0) {
-		close(master);
-		if (login_tty(slave) == -1) err(1, "login_tty()");
-		execl(SUPATH, SUPATH, username, "-c", "exit", NULL);
-	}
-	close(slave);
-	snprintf(mypass, 64, "%s\n", password);
-	tv.tv_sec = 0; tv.tv_usec = 10;
-
-	/* Read the "Password:" prompt and send the password when we have it */
-	while (times && flag) {
-		FD_ZERO(&rfds);
-		FD_SET(master, &rfds);
-		if (select(master + 1, &rfds, NULL, NULL, &tv) < 0) err(1, "select()");
-		if (FD_ISSET(master, &rfds)) {
-			read(master, buf, BUFF_SIZE-1);
-			write(master, mypass, strlen(mypass));
-			flag = 0;
-		}
-		usleep(1000);
-		times--;
-	}
-	/* If it just ended, let's check if there something in the buffers, blame 
-	coreutils su for this ugly hack */
-	FD_ZERO(&rfds);
-	FD_SET(master, &rfds);
-	if (select(master + 1, &rfds, NULL, NULL, &tv) < 0) err(1, "select()");
-	if (FD_ISSET(master, &rfds))
-		status = read(master, buf, BUFF_SIZE);
-
-	/* Check if we got a limit time */
-	if (times == 0) {
-		kill(pid, SIGKILL);
-		return ERR_CALLING_SU;
-	}
+	pid = init_su(&fdpty, username, password, cmd);
 
 	waitpid(pid, &status, 0);
-	close(master);
-	if(!WIFEXITED(status))
+
+	end_su(fdpty);
+	close(fdpty);
+
+	if (!WIFEXITED(status))
 		return -1;
 	if (WEXITSTATUS(status) != 0)
 		return ERR_WRONG_USER_OR_PASSWD;
 	return ERR_SUCCESS;
 }
 
+
 /* Run the given command as the given user */
 void run(char *username, char *password, char *command)
 {
-	int status, i = 0, master, slave, flag = 1;
-	char *tmp = NULL, *cmd[5] = { SUPATH, username, "-c", command, NULL };
-	char buf[BUFF_SIZE+1], mypass[64];
-	pid_t pid;
+	int fdpty = 0, pid = 0, status = 0, tty = 1, i = 0;
+	char buf[BUFF_SIZE], *cmd[6] = { SUPATH, username, "-p", "-c", command, NULL };
 	fd_set rfds;
 	struct timeval tv;
-	struct termios term;
 
-	if (tcgetattr(fileno(stdin), &term) == -1)  err(1, "tcgetattr()");
+	pid = init_su(&fdpty, username, password, cmd);
 
 	/* Put the terminal in raw mode */
-	tty_raw(fileno(stdin));
-
-	if (openpty(&master, &slave, NULL, &term, NULL) == -1) err(1, "openpty()");
-	if ((pid = fork()) < 0) err(1, "fork()");
-	else if (pid == 0) {
-		/* Ok, this is the child code */
-		close(master);
-		if (login_tty(slave) == -1) err(1, "login_tty()");
-		execv(cmd[0], cmd);
+	if (tcgetattr(STDIN_FILENO, &orig_termios) < 0) {
+		if (errno == ENOTTY)
+			errno = tty = 0;
+		else
+			err(1, "tcgetattr()");
 	}
-	else {
-		close(slave);
-		/* And the most important... The parent code */
-		snprintf(mypass, 64, "%s\n", password);
-		tv.tv_sec = 0; tv.tv_usec = 10;
 
-		/* Read the "Password:" prompt and send the password when we have it */
-		while (flag) {
-			FD_ZERO(&rfds);
-			FD_SET(master, &rfds);
-			if (select(master + 1, &rfds, NULL, NULL, &tv) < 0) err(1, "select()");
-			if (FD_ISSET(master, &rfds)) {
-				read(master, buf, BUFF_SIZE);
-				write(master, mypass, strlen(mypass));
-				flag = 0;
-			}
-		}
+	if (tty)
+		tty_raw(STDIN_FILENO);
 
-		while (!waitpid(pid, &status, WNOHANG)) {
-			/* Ok, the program needs some interaction, so this will do it fine */
-			FD_ZERO(&rfds);
-			FD_SET(master, &rfds);
-			FD_SET(fileno(stdin), &rfds);
-			if (select(master + 1, &rfds, NULL, NULL, &tv) < 0) err(1, "select()");
+	while (!waitpid(pid, &status, WNOHANG)) {
 
-			if (FD_ISSET(master, &rfds)) {
-				memset(buf, '\0', BUFF_SIZE);
-				i = read(master, buf, BUFF_SIZE);
-				tmp = buf;
-				if (!flag) {
-					tmp = strstr(buf, "\n") + 1;
-					flag = 1;
-				}
-				if (tmp)
-					write(fileno(stdout), tmp, i-(tmp-buf));
-			}
-			else if (FD_ISSET(fileno(stdin), &rfds)) {
-				i = read(fileno(stdin), buf, BUFF_SIZE);
-				write(master, buf, i);
-			}
-			usleep(100);
-		}
-
-		/* If it just ended, let's check if there something in the buffers */
+		/* Ok, the program needs some interaction, so this will do it fine */
+		tv.tv_sec = 0;
+		tv.tv_usec = 10;
 		FD_ZERO(&rfds);
-		FD_SET(master, &rfds);
-		if (select(master + 1, &rfds, NULL, NULL, &tv) < 0) err(1, "select()");
-		if (FD_ISSET(master, &rfds)) {
-			memset(buf, '\0', BUFF_SIZE);
-			if ((i = read(master, buf, BUFF_SIZE)) > 0) {
-				tmp = buf;
-				if (!flag) {
-					tmp = strstr(buf, "\n") + 1;
-					flag = 1;
-				}
-				if (tmp)
-					write(fileno(stdout), tmp, i-(tmp-buf));
-			}
-		}
+		FD_SET(fdpty, &rfds);
+		FD_SET(STDIN_FILENO, &rfds);
 
-		/* Reset the terminal */
-		if (tcsetattr(fileno(stdin), TCSAFLUSH, &orig_termios) < 0) err(1, "tcsetattr()");
+		if (select(MAX(fdpty, STDIN_FILENO)+1, &rfds, NULL, NULL, &tv) < 0) err(1, "select()");
+
+		if (FD_ISSET(fdpty, &rfds)) {
+			status = read(fdpty, buf, BUFF_SIZE);
+			write(STDOUT_FILENO, buf, status);
+		}
+		else if (FD_ISSET(STDIN_FILENO, &rfds)) {
+			status = read(STDIN_FILENO, buf, BUFF_SIZE);
+			write(fdpty, buf, status);
+		}
+		usleep(100);
 	}
+
+	end_su(fdpty);
+	close(fdpty);
+
+	if (tty)
+	    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) < 0) 
+			err(1, "tcsetattr()");
 }
 
 int main(int argc, char *argv[])
@@ -356,6 +358,9 @@ int main(int argc, char *argv[])
 	if ((pw = getpwuid(whoami)) == NULL)
 		exit(2 + 0 * fprintf(stderr, "Who you think you are? Houdini?\n"));
 
+	if (!explicit_username)
+		username = g_strdup("root");
+
 	if (username && !strcmp(pw->pw_name, username)) {
 		/* username was me so let's just run it and get the hell out */
 		if (execvp(command, &(cmd_argv[0])) == -1) {
@@ -365,9 +370,6 @@ int main(int argc, char *argv[])
 		/* We should never get here, but just in case */
 		exit(0);
 	}
-
-	if (!explicit_username)
-		username = g_strdup("root");
 
 	if (explicit_username && !explicit_message)
 		message = g_strdup_printf("Please enter the\npassword for %s:", username);
@@ -430,7 +432,7 @@ int main(int argc, char *argv[])
 					gtk_main_iteration();
 				dialog = NULL;
 				/* using argv instead of cmd_argv is fine, because 'su' is going
-				 * to implement its only parsing nevertheless*/
+				 * to implement its only parsing nevertheless */
 				command_run = g_strjoinv(" ", &argv[i]);
 				run(username, password, command_run);
 				g_free(command_run);
