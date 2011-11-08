@@ -47,14 +47,15 @@
 #include "config.h"
 #include "errors.h"
 
-#ifndef MAX
-#define MAX(a,b) ((a)>(b)?(a):(b))
+#ifdef SUDOPATH
+#include "sudo_backend.h"
 #endif
 
-#define BUFF_SIZE 1024
+#ifdef SUPATH
+#include "su_backend.h"
+#endif
 
 static struct termios orig_termios;
-
 
 /* Print's the help text to the terminal and exits with error */
 void say_help(char *str)
@@ -142,147 +143,6 @@ void tty_raw(int ttyfd)
 		err(1, "tcsetattr()");
 }
 
-
-/* Finalize the su call */
-void end_su(int fd)
-{
-	char buf[BUFF_SIZE];
-	fd_set rfds;
-	struct timeval tv;
-
-	/* If it just ended, let's check if there something in the buffers, blame coreutils su for this ugly hack */
-	tv.tv_sec = 0;
-	tv.tv_usec = 100;
-	FD_ZERO(&rfds);
-	FD_SET(fd, &rfds);
-	if (select(fd+1, &rfds, NULL, NULL, &tv) < 0)
-		err(1, "select()");
-	if (FD_ISSET(fd, &rfds))
-		read(fd, buf, BUFF_SIZE);
-}
-
-
-/* Finalize the su call */
-int init_su(int *fdpty, const char *username, const char *password, char *cmd[])
-{
-	int status = 1, i = 0;
-	char buf[BUFF_SIZE], mypass[64];
-	pid_t pid;
-	fd_set rfds;
-	struct timeval tv;
-
-	/* Creates a new terminal */
-	if ((pid = forkpty(fdpty, NULL, NULL, NULL)) < 0) err(1, "forkpty()");
-	else if (pid == 0) {
-		setsid();
-		execv(cmd[0], cmd);
-		err(1, "execv()");
-		exit(1);
-	}
-
-	/* Read the "Password:" prompt */
-	for (i = 500; i && status; i--) {
-		tv.tv_sec = 0;
-		tv.tv_usec = 10;
-		FD_ZERO(&rfds);
-		FD_SET(*fdpty, &rfds);
-		if (select(*fdpty + 1, &rfds, NULL, NULL, &tv) < 0)
-			err(1, "select()");
-		if (FD_ISSET(*fdpty, &rfds)) {
-			read(*fdpty, buf, BUFF_SIZE - 1);
-			status = 0;
-		}
-		usleep(1000);
-	}
-
-	/* Check if we got a limit time */
-	if (status) {
-		kill(pid, SIGKILL);
-		err(1, "No prompt given by the su command");
-	}
-
-	/* Send the password */
-	snprintf(buf, 64, "%s\n", password);
-	write(*fdpty, buf, strlen(buf));
-
-	/* Read what's left in the buffers */
-	end_su(*fdpty);
-
-	return pid;
-}
-
-
-/* Check user and password */
-int check_password(const char *username, const char *password)
-{
-	int fdpty = 0, status = 0, pid = 0;
-	char *cmd[6] = { SUPATH, (char *)username, "-p", "-c", "exit", NULL };
-
-	pid = init_su(&fdpty, username, password, cmd);
-
-	waitpid(pid, &status, 0);
-
-	end_su(fdpty);
-	close(fdpty);
-
-	if (!WIFEXITED(status))
-		return -1;
-	if (WEXITSTATUS(status) != 0)
-		return ERR_WRONG_USER_OR_PASSWD;
-	return ERR_SUCCESS;
-}
-
-
-/* Run the given command as the given user */
-void run(char *username, char *password, char *command)
-{
-	int fdpty = 0, pid = 0, status = 0, tty = 1, i = 0;
-	char buf[BUFF_SIZE], *cmd[6] = { SUPATH, username, "-p", "-c", command, NULL };
-	fd_set rfds;
-	struct timeval tv;
-
-	pid = init_su(&fdpty, username, password, cmd);
-
-	/* Put the terminal in raw mode */
-	if (tcgetattr(STDIN_FILENO, &orig_termios) < 0) {
-		if (errno == ENOTTY)
-			errno = tty = 0;
-		else
-			err(1, "tcgetattr()");
-	}
-
-	if (tty)
-		tty_raw(STDIN_FILENO);
-
-	while (!waitpid(pid, &status, WNOHANG)) {
-
-		/* Ok, the program needs some interaction, so this will do it fine */
-		tv.tv_sec = 0;
-		tv.tv_usec = 10;
-		FD_ZERO(&rfds);
-		FD_SET(fdpty, &rfds);
-		FD_SET(STDIN_FILENO, &rfds);
-
-		if (select(MAX(fdpty, STDIN_FILENO)+1, &rfds, NULL, NULL, &tv) < 0) err(1, "select()");
-
-		if (FD_ISSET(fdpty, &rfds)) {
-			status = read(fdpty, buf, BUFF_SIZE);
-			write(STDOUT_FILENO, buf, status);
-		}
-		else if (FD_ISSET(STDIN_FILENO, &rfds)) {
-			status = read(STDIN_FILENO, buf, BUFF_SIZE);
-			write(fdpty, buf, status);
-		}
-		usleep(100);
-	}
-
-	end_su(fdpty);
-	close(fdpty);
-
-	if (tty)
-	    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) < 0) 
-			err(1, "tcsetattr()");
-}
 
 int main(int argc, char *argv[])
 {
@@ -426,7 +286,11 @@ int main(int argc, char *argv[])
 				username = strdup(gtk_entry_get_text(GTK_ENTRY(user)));
 			password = strdup(gtk_entry_get_text(GTK_ENTRY(pass)));
 
-			if ((error = check_password(username, password)) == ERR_SUCCESS) {
+#ifdef SUDOPATH
+			if ((error = check_password_sudo(username, password)) == ERR_SUCCESS) {
+#else
+			if ((error = check_password_su(username, password)) == ERR_SUCCESS) {
+#endif
 				gtk_widget_destroy(dialog);
 				while (gtk_events_pending())
 					gtk_main_iteration();
@@ -434,7 +298,11 @@ int main(int argc, char *argv[])
 				/* using argv instead of cmd_argv is fine, because 'su' is going
 				 * to implement its only parsing nevertheless */
 				command_run = g_strjoinv(" ", &argv[i]);
-				run(username, password, command_run);
+#ifdef SUDOPATH
+				run_sudo(username, password, command_run);
+#else
+				run_su(username, password, command_run);
+#endif
 				g_free(command_run);
 
 				counter = 3;
