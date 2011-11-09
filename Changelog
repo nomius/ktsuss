@@ -1,4 +1,19 @@
-david@localhost:~/fuentes/mine/ktsuss$ svn log
+------------------------------------------------------------------------
+r8 | dcortarello | 2011-11-08 20:57:22 -0300 (Tue, 08 Nov 2011) | 1 line
+
+Change the main window tittle according to the command given
+------------------------------------------------------------------------
+r7 | dcortarello | 2011-11-08 20:52:21 -0300 (Tue, 08 Nov 2011) | 1 line
+
+Implemented sudo backend
+------------------------------------------------------------------------
+r6 | dcortarello | 2011-11-08 02:21:29 -0300 (Tue, 08 Nov 2011) | 1 line
+
+su backend fixed
+------------------------------------------------------------------------
+r5 | dcortarello | 2011-08-15 19:20:55 -0300 (Mon, 15 Aug 2011) | 1 line
+
+I don't like the idea of having a Changelog versioned , but since ktsuss changed like 3 times repositories it's a good way to keep up the old history
 ------------------------------------------------------------------------
 r4 | dcortarello | 2011-06-26 19:42:39 -0300 (Sun, 26 Jun 2011) | 1 line
 
