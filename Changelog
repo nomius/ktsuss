@@ -1,85 +1,96 @@
-------------------------------------------------------------------------
-r8 | dcortarello | 2011-11-08 20:57:22 -0300 (Tue, 08 Nov 2011) | 1 line
+commit 0bba7349d02b94358c8c156add81263bd4c8ac96
+Author: David B. Cortarello <dcortarello@gmail.com>
+Date:   Tue Mar 4 01:21:59 2014 -0300
 
-Change the main window tittle according to the command given
-------------------------------------------------------------------------
-r7 | dcortarello | 2011-11-08 20:52:21 -0300 (Tue, 08 Nov 2011) | 1 line
+    Changed homepage
 
-Implemented sudo backend
-------------------------------------------------------------------------
-r6 | dcortarello | 2011-11-08 02:21:29 -0300 (Tue, 08 Nov 2011) | 1 line
+commit 47d9262defccc351a0b5f408b1c3c9e7bf0c60fc
+Author: David B. Cortarello <dcortarello@gmail.com>
+Date:   Tue Mar 4 01:08:25 2014 -0300
 
-su backend fixed
-------------------------------------------------------------------------
-r5 | dcortarello | 2011-08-15 19:20:55 -0300 (Mon, 15 Aug 2011) | 1 line
+    Applied patch by possum@possum.cc. Also ignored stderr and improved return status in password check
 
-I don't like the idea of having a Changelog versioned , but since ktsuss changed like 3 times repositories it's a good way to keep up the old history
-------------------------------------------------------------------------
-r4 | dcortarello | 2011-06-26 19:42:39 -0300 (Sun, 26 Jun 2011) | 1 line
+commit 673aff22bdeee66a903c62667c67e91592656a9c
+Author: David B. Cortarello <dcortarello@gmail.com>
+Date:   Tue Mar 4 00:27:16 2014 -0300
 
-Added Valere to the credits because to his bug fix
-------------------------------------------------------------------------
-r3 | dcortarello | 2011-06-26 19:40:12 -0300 (Sun, 26 Jun 2011) | 1 line
+    Fixed issue provoked by SIGHUP received by the new forked pty
 
-Fixed bug with commands with more than one parameter
-------------------------------------------------------------------------
-r2 | dcortarello | 2011-03-28 10:56:00 -0300 (Mon, 28 Mar 2011) | 1 line
+commit 9818286fafc454c89ab8fda9db1700ac97bdfd52
+Author: nomius <nomius@users.noreply.github.com>
+Date:   Sun Feb 16 03:19:25 2014 -0200
 
-Initial code version
-------------------------------------------------------------------------
-r1 | dcortarello | 2011-03-28 10:54:00 -0300 (Mon, 28 Mar 2011) | 1 line
+    Removed old README file
 
-Initial repository structure
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+commit 4b400abb918f4a2997f497c5f6aa5d0b32da06ac
+Merge: 47e6a39 aeb7b4d
+Author: David B. Cortarello <dcortarello@gmail.com>
+Date:   Sun Feb 16 02:12:24 2014 -0300
 
-Changed format in CREDITS file
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+    Merge branch 'master' of github.com:nomius/ktsuss
 
-Added PACKAGE_BUGREPORT to configure.ac
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+commit aeb7b4de8e0b50c76652d2cf8b9f0fd1f4880593
+Author: nomius <nomius@users.noreply.github.com>
+Date:   Sat Feb 15 21:15:09 2014 -0800
 
-Added contributors line to CREDITS file
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+    Initial commit
 
-Added license header
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+commit 47e6a391cdbf6e119de5401985d7d4b2904505e4
+Author: nomius <dcortarello@gmail.com>
+Date:   Wed Jan 30 03:08:13 2013 +0000
 
-Changed from custom gtk window to native gtk dialog
+    I'm commiting this patch by Franck Endres, but I'm not completely sure if making a login shell would be what everyone would like. So I'll push this patch and I'll let people test before version bump
 
- . Thanks to Christian Dywan for the patch
- . Also added support to run commands with different users instead
-   of only root
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+commit e6a2efe0209cf1f22962fea2454c3871c8394f52
+Author: nomius <dcortarello@gmail.com>
+Date:   Wed Nov 9 01:40:37 2011 +0000
 
-Added options -h, --help, -v and --version to ktsuss main file
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+    Updated Changelog
 
-Added message error in wrong username
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+commit 18e1ecfa14bf6909a8ff7148ecfaca5a24e2addc
+Author: nomius <dcortarello@gmail.com>
+Date:   Tue Nov 8 23:57:22 2011 +0000
 
-New icon
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+    Change the main window tittle according to the command given
 
-licence file added
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+commit 7bd45d9b7c3d0006eba7f657be44d389d1eab067
+Author: nomius <dcortarello@gmail.com>
+Date:   Tue Nov 8 23:52:21 2011 +0000
 
-Initial code added
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+    Implemented sudo backend
 
-init version
-------------------------------------------------------------------------
-r0 | dcortarello | XXXX-XX-XX XX:XX:XX -0300 (XXX, XX XXX XXXX) | 1 line
+commit 338c357ea7a0b4a75be8006f9ee3779c3bc65c36
+Author: nomius <dcortarello@gmail.com>
+Date:   Tue Nov 8 05:21:29 2011 +0000
 
-Initial directory structure.
+    su backend fixed
 
+commit a77c93cc8844371e2efed4541c1dea1d24f66ee4
+Author: nomius <dcortarello@gmail.com>
+Date:   Mon Aug 15 22:20:55 2011 +0000
+
+    I don't like the idea of having a Changelog versioned , but since ktsuss changed like 3 times repositories it's a good way to keep up the old history
+
+commit 482dd0b43a27fac1623a273d8bd9efc47cfb650a
+Author: nomius <dcortarello@gmail.com>
+Date:   Sun Jun 26 22:42:39 2011 +0000
+
+    Added Valere to the credits because to his bug fix
+
+commit 7d3af214b191d94b4c2f9b8f7bbe1424ddd25feb
+Author: nomius <dcortarello@gmail.com>
+Date:   Sun Jun 26 22:40:12 2011 +0000
+
+    Fixed bug with commands with more than one parameter
+
+commit 41bbbd7ecc0f62b79d3fb0e44cb0d34ffb636c98
+Author: nomius <dcortarello@gmail.com>
+Date:   Mon Mar 28 13:56:00 2011 +0000
+
+    Initial code version
+
+commit 2e276fb47e7f8b3e1abb5ed2e3d0b69f786705f1
+Author: nomius <dcortarello@gmail.com>
+Date:   Mon Mar 28 13:54:00 2011 +0000
+
+    Initial repository structure
