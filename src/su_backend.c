@@ -86,6 +86,7 @@ static int init_su(int *fdpty, const char *username, const char *password, char 
 	if ((pid = forkpty(fdpty, NULL, NULL, NULL)) < 0) err(1, "forkpty()");
 	else if (pid == 0) {
 		setsid();
+		signal(SIGHUP, SIG_IGN);
 		execv(cmd[0], cmd);
 		err(1, "execv()");
 		exit(1);
@@ -136,11 +137,14 @@ int check_password_su(const char *username, const char *password)
 	end_su(fdpty);
 	close(fdpty);
 
-	if (!WIFEXITED(status))
-		return -1;
-	if (WEXITSTATUS(status) != 0)
-		return ERR_WRONG_USER_OR_PASSWD;
-	return ERR_SUCCESS;
+	if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+		return ERR_SUCCESS;
+	else
+		if (WIFSIGNALED(status)) {
+			fprintf(stderr, "Why I was signaled?: %d\n", WTERMSIG(status));
+			return -1;
+		}
+	return ERR_WRONG_USER_OR_PASSWD;
 }
 
 
@@ -148,7 +152,7 @@ int check_password_su(const char *username, const char *password)
 void run_su(char *username, char *password, char *command)
 {
 	char buf[BUFF_SIZE], *cmd[7] = { SUPATH, username, "-p", "-l", "-c", command, NULL };
-	int fdpty = 0, status = 0, tty = 1, i = 0;
+	int fdpty = 0, status = 0, tty = 1;
 	pid_t pid = 0;
 	fd_set rfds;
 	struct timeval tv;
