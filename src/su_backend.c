@@ -170,7 +170,8 @@ void run_su(char *username, char *password, char *command)
 	if (tty)
 		tty_raw(STDIN_FILENO);
 
-	while (!waitpid(pid, &status, WNOHANG)) {
+	while (1) {
+		waitpid(pid, &status, WNOHANG);
 
 		/* Ok, the program needs some interaction, so this will do it fine */
 		tv.tv_sec = 0;
@@ -182,8 +183,11 @@ void run_su(char *username, char *password, char *command)
 		if (select(MAX(fdpty, STDIN_FILENO)+1, &rfds, NULL, NULL, &tv) < 0) err(1, "select()");
 
 		if (FD_ISSET(fdpty, &rfds)) {
-			status = read(fdpty, buf, BUFF_SIZE);
-			write(STDOUT_FILENO, buf, status);
+			if ((status = read(fdpty, buf, BUFF_SIZE)) > 0)
+				write(STDOUT_FILENO, buf, status);
+			else
+				break;
+
 		}
 		else if (FD_ISSET(STDIN_FILENO, &rfds)) {
 			status = read(STDIN_FILENO, buf, BUFF_SIZE);
