@@ -151,7 +151,7 @@ int check_password_su(const char *username, const char *password)
 /* Run the given command as the given user */
 void run_su(char *username, char *password, char *command)
 {
-	char buf[BUFF_SIZE], *cmd[7] = { SUPATH, username, "-p", "-l", "-c", command, NULL };
+	char buf[BUFF_SIZE], *cmd[6] = { SUPATH, username, "-p", "-c", command, NULL };
 	int fdpty = 0, status = 0, tty = 1;
 	pid_t pid = 0;
 	fd_set rfds;
