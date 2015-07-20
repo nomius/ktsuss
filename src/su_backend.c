@@ -40,8 +40,15 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <pwd.h>
+
+#if defined(__FreeBSD__)
+#include <libutil.h>
+#include <utmpx.h>
+#include <sys/signal.h>
+#else
 #include <pty.h>
 #include <utmp.h>
+#endif
 #include <termios.h>
 
 #include "errors.h"
