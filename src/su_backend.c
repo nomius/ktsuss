@@ -135,7 +135,11 @@ static int init_su(int *fdpty, const char *username, const char *password, char 
 int check_password_su(const char *username, const char *password)
 {
 	int fdpty = 0, status = 0, pid = 0;
+#if defined(__FreeBSD__)
+	char *cmd[6] = { SUPATH, (char *)username, "-m", "-c", "exit", NULL };
+#else
 	char *cmd[6] = { SUPATH, (char *)username, "-p", "-c", "exit", NULL };
+#endif
 
 	pid = init_su(&fdpty, username, password, cmd);
 
@@ -158,7 +162,11 @@ int check_password_su(const char *username, const char *password)
 /* Run the given command as the given user */
 void run_su(char *username, char *password, char *command)
 {
+#if defined(__FreeBSD__)
+	char buf[BUFF_SIZE], *cmd[6] = { SUPATH, username, "-m", "-c", command, NULL };
+#else
 	char buf[BUFF_SIZE], *cmd[6] = { SUPATH, username, "-p", "-c", command, NULL };
+#endif
 	int fdpty = 0, status = 0, tty = 1;
 	pid_t pid = 0;
 	fd_set rfds;
